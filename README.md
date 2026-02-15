@@ -7,4 +7,4 @@ We will be using the data stored [here](http://netsg.cs.sfu.ca/youtubedata/) to 
 
 To accomplish this project, Spark and Python will be used.
 
-The scripts are run as <name>.py <dir> <depth>
+The scripts are run as `<name>.py <dir> <depth>`
