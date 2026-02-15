@@ -6,3 +6,5 @@ We will be using the data stored [here](http://netsg.cs.sfu.ca/youtubedata/) to 
 - Categorized statistics: frequency of videos partitioned by a search condition: categorization, size of videos, view count, etc.
 
 To accomplish this project, Spark and Python will be used.
+
+The scripts are run as <name>.py <dir> <depth>
