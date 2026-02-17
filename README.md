@@ -8,11 +8,10 @@ We will be using the data stored [here](http://netsg.cs.sfu.ca/youtubedata/) to 
 To accomplish this project, Spark and Python will be used.
 
 ## How to run 
-1. Extract a dataset into a directory d, noting the depth level
-2. Run `python txt-to-csv.py <d> <depth_level>`
-3. Run `python csv-to-sqlite.py <d> <database_name>`
-4. The deliverables from 2 and 3 are deduplicated and cleaned CSVs and a SQLite3 database that stores everything correctly
-5. Spark can use SQLite files through a JDBC driver
+1. Extract a dataset into a directory, noting the depth level
+2. Run `python etl.py <dir> <depth_level> <database_name>`
+3. The deliverables are deduplicated and cleaned CSVs and a SQLite3 database that stores everything correctly
+4. Spark can use SQLite files through a JDBC driver
 
 ## Credits
 Team members: Brian Wu, Matthew Gaskell
