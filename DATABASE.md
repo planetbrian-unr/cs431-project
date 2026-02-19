@@ -20,13 +20,13 @@ For step 1 of this project, we must convert the textfiles to .csv files, which c
 ### Video (Node)
 |   Name		|   Type		|   Notes 				|	Key		|
 |---------------|---------------|-----------------------|-----------|
-|	id      	|	char		|	!null, unique		|	PK		|
+|	id      	|	char(11)	|	!null, unique		|	PK		|
 |	uploader	|	int			|	Up.uploader_id		|	FK		|
 |	age			|	int			|	unsigned			|			|
 |	category	|	int			|	Cat.category_id		|	FK		|
 |	length		|	int			|	unsigned			|			|
 |	views		|	int			|	unsigned			|			|
-|	rate		|	decimal		|	0.00<->9.99			|			|
+|	rate		|	dec(3,2)    |	0.00<->9.99			|			|
 |	ratings		|	int			|	unsigned			|			|
 |	comments	|	int			|	unsigned			|			|
 

@@ -6,20 +6,41 @@ import sys
 import csv
 import sqlite3
 
+### ETL
+
 # the text file is delimited with tabs. consolidate all into one master
 # perform basic sanity checks, such as removing rows that don't form a full video
-def extract(i_txt:str, master_csv:str) -> None:
-    with open(i_txt, 'r') as infile, open(master_csv, 'w', newline='') as outfile:
-        reader = csv.reader(infile, delimiter='\t')
-        writer = csv.writer(outfile)
+def extract(dataset_dir:str, depth_level:int) -> None:
+    # define data structures
+    valid_rows = []
+    master_csv:str = f'{dataset_dir}/master.csv'
 
-        # add each valid (>=9 columns) row from the txt to the csv
+    # open all i_txt from 0 to d_l exclusive (d_l-1)
+    for i in range(0, depth_level):
+        i_txt:str = f'{dataset_dir}/{i}.txt'
+
+        # add each valid (>=9 columns) row from the txt to a list
         # ATTENTION: should i do this
-        valid_rows = (row for row in reader if len(row) >= 9)
+        with open(i_txt, 'r') as infile:
+            reader = csv.reader(infile, delimiter='\t')
+            for row in reader:
+                if len(row) >= 9:
+                    valid_rows.append(row)
+
+        
+    # add to master.csv in bulk from list. reduces runtime duration
+    with open(master_csv, 'w', newline='') as outfile:
+        writer = csv.writer(outfile)
         writer.writerows(valid_rows)
 
 # transform the master into 3 files
-def transform(master_csv:str, categories_csv:str, users_csv:str, videos_csv:str) -> None:
+def transform(dataset_dir:str) -> None:
+    # define files
+    users_csv:str = f'{dataset_dir}/users.csv'
+    categories_csv:str = f'{dataset_dir}/categories.csv'
+    master_csv:str = f'{dataset_dir}/master.csv'
+    videos_csv:str = f'{dataset_dir}/videos.csv'
+
     # create sets to store values from categories/users (deduplicated by nature)
     categories:set = set()
     users:set = set()
@@ -42,6 +63,29 @@ def transform(master_csv:str, categories_csv:str, users_csv:str, videos_csv:str)
     with open(users_csv, 'w', newline='') as outfile:
         writer = csv.writer(outfile)
         writer.writerows([[u] for u in users])
+
+# general load function
+def load(dataset_dir:str, db_name:str) -> None:
+    # define files
+    users_csv:str = f'{dataset_dir}/users.csv'
+    categories_csv:str = f'{dataset_dir}/categories.csv'
+    master_csv:str = f'{dataset_dir}/master.csv'
+    videos_csv:str = f'{dataset_dir}/videos.csv'
+
+    # create a database
+    con:sqlite3.Connection = sqlite3.connect(f'{dataset_dir}/{db_name}')
+    cur:sqlite3.Cursor = con.cursor()    
+
+    create_tables(cur)
+    load_basic_table(cur, categories_csv, 'Category', 'category')
+    load_basic_table(cur, users_csv, 'User', 'username')
+    load_video_table(cur, videos_csv)
+    load_relations_table(cur, master_csv)
+    
+    con.commit()
+    con.close()
+
+### Helper functions for LOAD
 
 # create all tables
 def create_tables(cur:sqlite3.Cursor) -> None:
@@ -98,12 +142,12 @@ def load_basic_table(cur:sqlite3.Cursor, file_path:str, table_name:str, column:s
 def load_video_table(cur:sqlite3.Cursor, file_path:str) -> None:
     # use dictionaries to translate categories/users into integers for FK
     cur.execute("SELECT * FROM User;")
-    user_dictionary = {}
+    user_dictionary:dict[str, int] = {}
     for (id, username) in cur:
         user_dictionary[username] = id
 
     cur.execute("SELECT * FROM Category;")
-    category_dictionary = {}
+    category_dictionary:dict[str, int] = {}
     for (id, description) in cur:
         category_dictionary[description] = id
 
@@ -151,31 +195,14 @@ def main() -> None:
     depth_level:int = int(sys.argv[2])
     db_name:str = sys.argv[3]
 
-    # EXTRACT from 0 to defined depth level
-    for i in range(0, depth_level):
-        # convert i.txt into master.csv...
-        extract(f'{dataset_dir}/{i}.txt', 
-                f'{dataset_dir}/master.csv')
+    # EXTRACT from 0 to defined depth level    
+    extract(dataset_dir, depth_level)
     
     # TRANSFORM then into table-csv
-    transform(f'{dataset_dir}/master.csv', 
-            f'{dataset_dir}/categories.csv', 
-            f'{dataset_dir}/users.csv', 
-            f'{dataset_dir}/videos.csv')
+    transform(dataset_dir)
     
-    # create a database
-    con:sqlite3.Connection = sqlite3.connect(f'{dataset_dir}/{db_name}')
-    cur:sqlite3.Cursor = con.cursor()    
-
     # LOAD all tables
-    create_tables(cur)
-    load_basic_table(cur, f'{dataset_dir}/categories.csv', 'Category', 'category')
-    load_basic_table(cur, f'{dataset_dir}/users.csv', 'User', 'username')
-    load_video_table(cur, f'{dataset_dir}/videos.csv')
-    load_relations_table(cur, f'{dataset_dir}/master.csv')
-    
-    con.commit()
-    con.close()
+    load(dataset_dir, db_name)
 
 
 if __name__ == '__main__':
