@@ -9,7 +9,7 @@ To accomplish this project, Spark and Python will be used.
 
 ## How to run 
 1. Extract a dataset into a directory, noting the depth level
-2. Run `python etl.py <dir> <depth_level> <database_name>`
+2. Run `python etl.py <dataset_id> <database_name>`
 3. The deliverables are deduplicated and cleaned CSVs and a SQLite3 database that stores everything correctly
 4. Spark can use SQLite files through a JDBC driver
 
