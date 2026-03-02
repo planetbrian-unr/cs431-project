@@ -1,32 +1,45 @@
-# ETL the dataset into a database with csv intermediaries
+# ETL the dataset from a zip file into a database with csv intermediaries
 # should be easy to adapt for Spark SQL
 # Brian Wu
 
 import sys
 import csv
 import sqlite3
+import os
+import re
+import zipfile
+
+## UNZIP
+# used chatgpt
+def depth_finder(dataset_id:str) -> int:
+    txt_files = []
+    for entry in os.listdir(f"{dataset_id}/"):
+        full_path = os.path.join(f"{dataset_id}/", entry)
+        if os.path.isfile(full_path) and re.fullmatch(r"\d+\.txt", entry):
+            txt_files.append(entry)
+
+    # extract the numeric part (stem) and convert to int
+    return max(int(os.path.splitext(name)[0]) for name in txt_files)+1
 
 ### ETL
-
 # the text file is delimited with tabs. consolidate all into one master
-# perform basic sanity checks, such as removing rows that don't form a full video
-def extract(dataset_dir:str, depth_level:int) -> None:
+# perform basic sanity checks, such as altering rows that don't form a full video tuple
+def extract(dataset_id:str, depth_level:int) -> None:
     # define data structures
     valid_rows = []
-    master_csv:str = f'{dataset_dir}/master.csv'
+    master_csv:str = f'{dataset_id}/master.csv'
 
     # open all i_txt from 0 to d_l exclusive (d_l-1)
     for i in range(0, depth_level):
-        i_txt:str = f'{dataset_dir}/{i}.txt'
+        i_txt:str = f'{dataset_id}/{i}.txt'
 
-        # add each valid (>=9 columns) row from the txt to a list
-        # ATTENTION: should i do this
+        # add each row from the txt to a list, adding padding if necessary 
         with open(i_txt, 'r') as infile:
             reader = csv.reader(infile, delimiter='\t')
             for row in reader:
-                if len(row) >= 9:
-                    valid_rows.append(row)
-
+                if len(row) == 1:
+                    row.extend(["Unknown", "0", "None", "0", "0", "0.00" , "0", "0"])
+                valid_rows.append(row)
         
     # add to master.csv in bulk from list. reduces runtime duration
     with open(master_csv, 'w', newline='') as outfile:
@@ -34,12 +47,12 @@ def extract(dataset_dir:str, depth_level:int) -> None:
         writer.writerows(valid_rows)
 
 # transform the master into 3 files
-def transform(dataset_dir:str) -> None:
+def transform(dataset_id:str) -> None:
     # define files
-    users_csv:str = f'{dataset_dir}/users.csv'
-    categories_csv:str = f'{dataset_dir}/categories.csv'
-    master_csv:str = f'{dataset_dir}/master.csv'
-    videos_csv:str = f'{dataset_dir}/videos.csv'
+    users_csv:str = f'{dataset_id}/users.csv'
+    categories_csv:str = f'{dataset_id}/categories.csv'
+    master_csv:str = f'{dataset_id}/master.csv'
+    videos_csv:str = f'{dataset_id}/videos.csv'
 
     # create sets to store values from categories/users (deduplicated by nature)
     categories:set = set()
@@ -50,8 +63,8 @@ def transform(dataset_dir:str) -> None:
         reader = csv.reader(infile)
         writer = csv.writer(outfile)
         for row in reader:
-            categories.add(row[3])
             users.add(row[1])
+            categories.add(row[3])
             writer.writerow(row[0:9])
 
     # write deduplicated set of categories to a csv
@@ -59,21 +72,21 @@ def transform(dataset_dir:str) -> None:
         writer = csv.writer(outfile)
         writer.writerows(([c] for c in categories))
 
-    # likewise. there are several videos with then same poster
+    # likewise. there are several videos with the same poster
     with open(users_csv, 'w', newline='') as outfile:
         writer = csv.writer(outfile)
         writer.writerows([[u] for u in users])
 
 # general load function
-def load(dataset_dir:str, db_name:str) -> None:
+def load(dataset_id:str, db_name:str) -> None:
     # define files
-    users_csv:str = f'{dataset_dir}/users.csv'
-    categories_csv:str = f'{dataset_dir}/categories.csv'
-    master_csv:str = f'{dataset_dir}/master.csv'
-    videos_csv:str = f'{dataset_dir}/videos.csv'
+    users_csv:str = f'{dataset_id}/users.csv'
+    categories_csv:str = f'{dataset_id}/categories.csv'
+    master_csv:str = f'{dataset_id}/master.csv'
+    videos_csv:str = f'{dataset_id}/videos.csv'
 
     # create a database
-    con:sqlite3.Connection = sqlite3.connect(f'{dataset_dir}/{db_name}')
+    con:sqlite3.Connection = sqlite3.connect(f'{db_name}')
     cur:sqlite3.Cursor = con.cursor()    
 
     create_tables(cur)
@@ -91,13 +104,13 @@ def load(dataset_dir:str, db_name:str) -> None:
 def create_tables(cur:sqlite3.Cursor) -> None:
     cur.execute("""
                 CREATE TABLE Category (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INTEGER PRIMARY KEY,
                     category VARCHAR(128)
                 ); 
                 """)
     cur.execute("""
                 CREATE TABLE User (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INTEGER PRIMARY KEY,
                     username VARCHAR(128)
                 ); 
                 """)
@@ -167,10 +180,11 @@ def load_video_table(cur:sqlite3.Cursor, file_path:str) -> None:
                 row[7],
                 row[8]
             ))
-        cur.executemany("""
-                        INSERT INTO Video
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-                        """, rows_to_insert)
+
+    cur.executemany("""
+                    INSERT INTO Video
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """, rows_to_insert)
 
 # these will be the vertices between nodes
 def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
@@ -186,23 +200,29 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
 
 def main() -> None:
     # if command-line arguments not exactly 3, gracefully fail
-    if len(sys.argv) != 4:
-        print("Usage: python txt-to-csv.py <dataset_dir> <depth_level> <db_name>")
+    if len(sys.argv) != 3:
+        print("Usage: python txt-to-csv.py <dataset_id> <db_name>")
         return
 
     # store command-line arguments
-    dataset_dir:str = sys.argv[1]
-    depth_level:int = int(sys.argv[2])
-    db_name:str = sys.argv[3]
+    dataset_id:str = sys.argv[1]
+    db_name:str = sys.argv[2]
+
+    # UNZIP the datset and get depth
+    zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
+    depth_level:int = depth_finder(dataset_id)
 
     # EXTRACT from 0 to defined depth level    
-    extract(dataset_dir, depth_level)
+    extract(dataset_id, depth_level)
     
     # TRANSFORM then into table-csv
-    transform(dataset_dir)
+    transform(dataset_id)
     
     # LOAD all tables
-    load(dataset_dir, db_name)
+    load(dataset_id, db_name)
+
+    # CLEANUP - should we do this?
+    # stub
 
 
 if __name__ == '__main__':
