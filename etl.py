@@ -6,42 +6,41 @@ import sys
 import csv
 import sqlite3
 import os
-import re
 import zipfile
 
 ## UNZIP
 # used chatgpt
-def depth_finder(dataset_id:str) -> int:
-    txt_files = []
-    for entry in os.listdir(f"{dataset_id}/"):
-        full_path = os.path.join(f"{dataset_id}/", entry)
-        if os.path.isfile(full_path) and re.fullmatch(r"\d+\.txt", entry):
-            txt_files.append(entry)
+def unzip_get_depth(dataset_id: str) -> int:
+    # unzip <id>.zip
+    zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
 
-    # extract the numeric part (stem) and convert to int
-    return max(int(os.path.splitext(name)[0]) for name in txt_files)+1
+    # generator of numeric parts from files named "<number>.txt"
+    stems = (
+        int(name.split('.')[0])
+        for name in os.listdir(dataset_id)
+        if name.endswith('.txt') and name.split('.')[0].isdigit()
+    )
+    return max(stems) + 1
 
 ### ETL
 # the text file is delimited with tabs. consolidate all into one master
 # perform basic sanity checks, such as altering rows that don't form a full video tuple
 def extract(dataset_id:str, depth_level:int) -> None:
-    # define data structures
+    # open all i_txt from 0 to d_l exclusive (d_l-1) and store their rows in valid_rows
     valid_rows = []
-    master_csv:str = f'{dataset_id}/master.csv'
-
-    # open all i_txt from 0 to d_l exclusive (d_l-1)
     for i in range(0, depth_level):
         i_txt:str = f'{dataset_id}/{i}.txt'
 
-        # add each row from the txt to a list, adding padding if necessary 
         with open(i_txt, 'r') as infile:
             reader = csv.reader(infile, delimiter='\t')
             for row in reader:
+                # add padding if necessary
                 if len(row) == 1:
                     row.extend(["Unknown", "0", "None", "0", "0", "0.00" , "0", "0"])
                 valid_rows.append(row)
         
     # add to master.csv in bulk from list. reduces runtime duration
+    master_csv:str = f'{dataset_id}/master.csv'
     with open(master_csv, 'w', newline='') as outfile:
         writer = csv.writer(outfile)
         writer.writerows(valid_rows)
@@ -87,7 +86,7 @@ def load(dataset_id:str, db_name:str) -> None:
 
     # create a database
     con:sqlite3.Connection = sqlite3.connect(f'{db_name}')
-    cur:sqlite3.Cursor = con.cursor()    
+    cur:sqlite3.Cursor = con.cursor()
 
     create_tables(cur)
     load_basic_table(cur, categories_csv, 'Category', 'category')
@@ -99,7 +98,6 @@ def load(dataset_id:str, db_name:str) -> None:
     con.close()
 
 ### Helper functions for LOAD
-
 # create all tables
 def create_tables(cur:sqlite3.Cursor) -> None:
     cur.execute("""
@@ -191,12 +189,12 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
     with open(master_csv, 'r') as file:
         reader = csv.reader(file)
         for row in reader:
-            # up to 20 recommended videos, but there may be 0. 0-20.
-            for cell in row[9:30]:
-                    cur.execute("""
-                                INSERT INTO Relation
-                                VALUES (?, ?);
-                                """, (row[0], cell))
+            # create pairs. up to 20 recommended videos, but there may be 0. 0-20.
+            relation = ((row[0], cell) for cell in row[9:30])
+            cur.executemany("""
+                            INSERT INTO Relation
+                            VALUES (?, ?);
+                            """, relation)
 
 def main() -> None:
     # if command-line arguments not exactly 3, gracefully fail
@@ -209,8 +207,7 @@ def main() -> None:
     db_name:str = sys.argv[2]
 
     # UNZIP the datset and get depth
-    zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
-    depth_level:int = depth_finder(dataset_id)
+    depth_level:int = unzip_get_depth(dataset_id)
 
     # EXTRACT from 0 to defined depth level    
     extract(dataset_id, depth_level)
