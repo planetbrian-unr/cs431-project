@@ -2,6 +2,7 @@
 # should be easy to adapt for Spark SQL
 # Brian Wu
 
+# built-in
 import sys
 import csv
 import sqlite3
@@ -84,18 +85,17 @@ def load(dataset_id:str, db_name:str) -> None:
     master_csv:str = f'{dataset_id}/master.csv'
     videos_csv:str = f'{dataset_id}/videos.csv'
 
-    # create a database
-    con:sqlite3.Connection = sqlite3.connect(f'{db_name}')
-    cur:sqlite3.Cursor = con.cursor()
+    # create a database, automatically manage closing it
+    with sqlite3.connect(f'{dataset_id}/{db_name}') as con:
+        cur:sqlite3.Cursor = con.cursor()
 
-    create_tables(cur)
-    load_basic_table(cur, categories_csv, 'Category', 'category')
-    load_basic_table(cur, users_csv, 'User', 'username')
-    load_video_table(cur, videos_csv)
-    load_relations_table(cur, master_csv)
-    
-    con.commit()
-    con.close()
+        create_tables(cur)
+        load_basic_table(cur, categories_csv, 'Category', 'category')
+        load_basic_table(cur, users_csv, 'User', 'username')
+        load_video_table(cur, videos_csv)
+        load_relations_table(cur, master_csv)
+        
+        con.commit()
 
 ### Helper functions for LOAD
 # create all tables
@@ -149,7 +149,6 @@ def load_basic_table(cur:sqlite3.Cursor, file_path:str, table_name:str, column:s
                         """, reader)
 
 # create video table and load everything in from csv
-# ISSUE: i cant get the Video.rate column to import correctly. 4.xx becomes 4, etc.
 def load_video_table(cur:sqlite3.Cursor, file_path:str) -> None:
     # use dictionaries to translate categories/users into integers for FK
     cur.execute("SELECT * FROM User;")
@@ -174,7 +173,7 @@ def load_video_table(cur:sqlite3.Cursor, file_path:str) -> None:
                 category_dictionary.get(row[3]),
                 row[4],
                 row[5],
-                row[6], # HERE
+                row[6],
                 row[7],
                 row[8]
             ))
@@ -217,9 +216,6 @@ def main() -> None:
     
     # LOAD all tables
     load(dataset_id, db_name)
-
-    # CLEANUP - should we do this?
-    # stub
 
 
 if __name__ == '__main__':
