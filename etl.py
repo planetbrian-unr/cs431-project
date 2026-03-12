@@ -101,19 +101,19 @@ def load(dataset_id:str, db_name:str) -> None:
 # create all tables
 def create_tables(cur:sqlite3.Cursor) -> None:
     cur.execute("""
-                CREATE TABLE Category (
+                CREATE TABLE IF NOT EXISTS Category (
                     id INTEGER PRIMARY KEY,
-                    category VARCHAR(128)
+                    category VARCHAR(128) UNIQUE
                 ); 
                 """)
     cur.execute("""
-                CREATE TABLE Uploader (
+                CREATE TABLE IF NOT EXISTS User (
                     id INTEGER PRIMARY KEY,
-                    username VARCHAR(128)
+                    username VARCHAR(128) UNIQUE
                 ); 
                 """)
     cur.execute("""
-                CREATE TABLE Video (
+                CREATE TABLE IF NOT EXISTS Video (
                     id CHAR(11) PRIMARY KEY,
                     uploader INTEGER,
                     age INTEGER,
@@ -129,7 +129,7 @@ def create_tables(cur:sqlite3.Cursor) -> None:
                 );
                 """)
     cur.execute("""
-                CREATE TABLE Relation (
+                CREATE TABLE IF NOT EXISTS Relation (
                     video_id CHAR(11),
                     related_id CHAR(11),
                 
