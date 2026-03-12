@@ -107,7 +107,7 @@ def create_tables(cur:sqlite3.Cursor) -> None:
                 ); 
                 """)
     cur.execute("""
-                CREATE TABLE User (
+                CREATE TABLE Uploader (
                     id INTEGER PRIMARY KEY,
                     username VARCHAR(128)
                 ); 
