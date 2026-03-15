@@ -19,7 +19,7 @@ Presuming you do not have Spark installed on your Unix-like system and that you 
 4. The deliverables are deduplicated and cleaned CSVs and a SQLite3 database that stores everything correctly
 
 ### Spark
-5. Install Spark (how?)
+5. Run `pip install -r requirements.txt` to ensure that Pyspark and other necessary libraries are installed and ready for use.
 6. Run `spark.py`
 
 ## Resources
