@@ -2,3 +2,4 @@ pyspark
 graphframes
 networkx
 matplotlib
+wget
