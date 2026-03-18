@@ -203,9 +203,9 @@ def main() -> None:
     depth:int = get_dataset_depth(dataset_id)
 
     # etl
-    # extract(dataset_id, depth, files[0])
-    # transform(files)
-    # load(files)
+    extract(dataset_id, depth, files[0])
+    transform(files)
+    load(files)
     
 
 if __name__ == '__main__':
