@@ -7,6 +7,7 @@ import sys
 
 # pip imports
 from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.functions import col, asc, desc
 from graphframes import GraphFrame
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -21,14 +22,15 @@ def initialize_spark_session() -> SparkSession:
 # Load a table into spark, and return the dataframe for further use
 def load_table_into_spark(spark_session:SparkSession, db_name:str, table_name:str) -> DataFrame:
     # set parameters and load a table into a dataframe
+    protocol_db = "jdbc:sqlite:" + db_name  # Required format for Spark to understand what it's working with
     spark_sqlite_con = spark_session.read.format("jdbc").option("driver", "org.sqlite.JDBC")
-    sql_table = spark_sqlite_con.option("url", db_name).option("dbtable", table_name)
+    sql_table = spark_sqlite_con.option("url", protocol_db).option("dbtable", table_name)
     df = sql_table.load()
 
     return df
 
 # Loading the four tables that are present in the database produced in etl.py
-def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list[DataFrame]:
+def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list:
     dfs:list[DataFrame] = []
 
     table_names:list[str] = ["Category", "User", "Video", "Relation"]
@@ -38,16 +40,38 @@ def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list[DataFram
 
     return dfs
 
-def network_aggregation():
-    pass
+def network_aggregation(video_table: DataFrame, relation_table: DataFrame) -> GraphFrame:
+    # Take the video id column from the video table
+    nodes = video_table.select(col("id"))
+    # Select values from the relation table to form edges between video nodes
+    edges = relation_table.select(col("video_id").alias("src"), col("related_id").alias("dst"))
+    
+    # Plug into GraphFrame object and return
+    graph = GraphFrame(nodes, edges) # ERRORS HERE RIGHT NOW
+    return graph
 
-def graph_and_display(graph: GraphFrame, title: str):
+def degree_reporting(graph: GraphFrame):
+    # In and out degree reporting
+    # graph.inDegrees.show()
+    # graph.outDegrees.show()
+
+    # # Average degree reporting
+    # num_nodes = graph.vertices.count()
+    # num_edges = graph.edges.count()
+    # average_degree = num_edges / num_nodes
+    # print(f"Average Degrees per Node: {average_degree}.")
+
+    # Min and max degree reporting
+    graph.degrees.orderBy(col("degree").asc()).limit(1).show()
+    graph.degrees.orderBy(col("degree").desc()).limit(1).show()
+
+def graph_and_display(graph: GraphFrame, title: str) -> None:
     df = graph.edges.select("src", "dst").toPandas()
     nx_graph = nx.from_pandas_edgelist(df, source="src", target="dst")
 
     plt.figure()
     plt.title(title)
-    nx.draw(nx_graph)
+    nx.draw(nx_graph, node_size=200, edge_color='black', node_color='green', with_labels=True, font_size=15)
     plt.show()
 
 # Main
@@ -63,6 +87,9 @@ def main() -> None:
     # make the s_s reusable without needing a getOrCreate call
     spark_session = initialize_spark_session()
     spark_tables = load_sqlite_tables(spark_session, database)
+    agg_graph = network_aggregation(spark_tables[2], spark_tables[3])
+    degree_reporting(agg_graph)
+    # graph_and_display(agg_graph, "Title")
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()

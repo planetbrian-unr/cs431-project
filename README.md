@@ -7,7 +7,7 @@ We will be using the datasets stored [here](http://netsg.cs.sfu.ca/youtubedata/)
 
 To accomplish this project, Spark and Python will be used.
 
-## How to run
+## How To Run
 Presuming you do not have Spark installed on your Unix-like system and that you have only cloned this repository...
 
 ### Fetch
@@ -19,11 +19,22 @@ Presuming you do not have Spark installed on your Unix-like system and that you 
 4. The deliverables are deduplicated and cleaned CSVs and a SQLite3 database that stores everything correctly
 
 ### Spark
-5. Run `pip install -r requirements.txt` to ensure that Pyspark and other necessary libraries are installed and ready for use.
-6. Run `spark.py`
+5. Run `pip install -r requirements.txt` to ensure that Pyspark and other necessary libraries are installed and ready for use. Running this in a Unix enrivonment (WSL if on Windows) will ensure that most of the necessary supporting binaries are also installed. Much further efforts are required to make Spark run on Windows, as it is heavily built for Linux, and we recommend switching the runtime environment to Unix before attempting this. 
+6. Once this is done, Java must be set up for the installation to run successfully. If you do not already have an instantiation of Java, running the following commands in your Unix or WSL terminal will achieve this:
+    - `sudo apt update`
+    - `sudo apt install openjdk-17-jdk -y`
+    - `echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> ~/.bashrc`
+    - `echo 'export PATH=$PATH:$JAVA_HOME/bin' >> ~/.bashrc`
+    - `source ~/.bashrc`
+    - `echo $JAVA_HOME`
+    - `java -version`
+
+    The previous two commands are for validation, the first should display a path which looks like `/usr/lib/jvm/java-17-openjdk-amd64` and the second should display some information indicating that the version of Java is 17. 
+7. Run `spark.py`
 
 ## Resources
-- [Spark documentation](https://spark.apache.org/docs/latest/index.html)
+- [Spark Documentation](https://spark.apache.org/docs/latest/index.html)
+- [PySpark Documentation](https://spark.apache.org/docs/latest/api/python/getting_started/install.html)
 
 ## Credits
 Team members: Brian Wu, Matthew Gaskell
