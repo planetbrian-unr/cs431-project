@@ -45,14 +45,15 @@ def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list[DataFram
 
     return dfs
 
-def network_aggregation(video_table: DataFrame, relation_table: DataFrame) -> GraphFrame:
+def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> GraphFrame:
     # Take the video id column from the video table
     nodes = video_table.select(col("id"))
     # Select values from the relation table to form edges between video nodes
-    edges = relation_table.select(col("video_id").alias("src"), col("related_id").alias("dst"))
+    edges = relation_table.select(col("src"), col("dst"))
     
     # Plug into GraphFrame object and return
     graph = GraphFrame(nodes, edges)
+
     return graph
 
 def degree_reporting(graph: GraphFrame) -> None:

@@ -11,10 +11,13 @@ import zipfile
 # pip
 import wget
 
-# get dataset and unzip it
-def get_dataset(dataset_id:str) -> None:
-    wget.download(f"https://netsg.cs.sfu.ca/youtubedata/{dataset_id}.zip", bar=None)
-    zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
+# get dataset and unzip it if it doesn't already exist
+def fetch_dataset(dataset_id:str) -> None:
+    if not os.path.isfile(f"{dataset_id}.zip"):
+        wget.download(f"https://netsg.cs.sfu.ca/youtubedata/{dataset_id}.zip", bar=None)
+    
+    if not os.path.isdir(f"{dataset_id}"):
+        zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
 
 # get depth. used ai
 def get_dataset_depth(dataset_id:str) -> int:
@@ -48,8 +51,8 @@ def extract(dataset_id:str, depth_level:int, master_csv:str) -> None:
 # transform the master into 3 files
 def transform(files:list[str]) -> None:
     # create sets to store values from categories/users (deduplicated by nature)
-    categories:set = set()
     users:set = set()
+    categories:set = set()
 
     # open master_csv. grab specific columns for sets, and store the first 9 rows as a video tuple
     with open(files[0], 'r') as infile, open(files[3], 'w', newline='') as outfile:
@@ -60,15 +63,15 @@ def transform(files:list[str]) -> None:
             categories.add(row[3])
             writer.writerow(row[0:9])
 
-    # write deduplicated set of categories to a csv
-    with open(files[2], 'w', newline='') as outfile:
-        writer = csv.writer(outfile)
-        writer.writerows(([c] for c in categories))
-
     # likewise. there are several videos with the same poster
     with open(files[1], 'w', newline='') as outfile:
         writer = csv.writer(outfile)
         writer.writerows([[u] for u in users])
+        
+    # write deduplicated set of categories to a csv
+    with open(files[2], 'w', newline='') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerows(([c] for c in categories))
 
 # general load function
 def load(files:list[str]) -> None:
@@ -159,12 +162,12 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
     # create table
     cur.execute("""
                 CREATE TABLE IF NOT EXISTS Relation (
-                    video_id CHAR(11),
-                    related_id CHAR(11),
+                    src CHAR(11),
+                    dst CHAR(11),
                 
-                    PRIMARY KEY (video_id, related_id),                
-                    FOREIGN KEY (video_id) REFERENCES Video(id),
-                    FOREIGN KEY (related_id) REFERENCES Video(id)
+                    PRIMARY KEY (src, dst),                
+                    FOREIGN KEY (src) REFERENCES Video(id),
+                    FOREIGN KEY (dst) REFERENCES Video(id)
                 );
                 """)
     
@@ -199,7 +202,7 @@ def main() -> None:
     ]
 
     # unzip dataset files and get depth
-    get_dataset(dataset_id)
+    fetch_dataset(dataset_id)
     depth:int = get_dataset_depth(dataset_id)
 
     # etl
