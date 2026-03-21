@@ -22,6 +22,8 @@ def initialize_spark_session() -> SparkSession:
         .getOrCreate()
     )
 
+    spark_session.sparkContext.setLogLevel("ERROR")   # ← change to "WARN"/"INFO" as needed
+    
     return spark_session
 
 # Load a table into spark, and return the dataframe for further use

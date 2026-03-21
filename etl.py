@@ -5,7 +5,7 @@
 import csv
 import sqlite3
 import os
-import sys
+# import sys
 import zipfile
 
 # pip
@@ -182,34 +182,34 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
                             VALUES (?, ?);
                             """, relation)
 
-def main() -> None:
-    # if command-line arguments not exactly 3, gracefully fail
-    if len(sys.argv) != 3:
-        print("Usage: python etl.py <dataset_id> <db_name>")
-        return
+# def main() -> None:
+#     # if command-line arguments not exactly 3, gracefully fail
+#     if len(sys.argv) != 3:
+#         print("Usage: python etl.py <dataset_id> <db_name>")
+#         return
 
-    # store command-line arguments
-    dataset_id:str = sys.argv[1]
-    db_name:str = sys.argv[2]
+#     # store command-line arguments
+#     dataset_id:str = sys.argv[1]
+#     db_name:str = sys.argv[2]
 
-    # establish list of desired files
-    files:list[str] = [
-        f"{dataset_id}/master.csv",
-        f"{dataset_id}/users.csv",
-        f"{dataset_id}/categories.csv",
-        f"{dataset_id}/videos.csv",
-        f"{dataset_id}/{db_name}"
-    ]
+#     # establish list of desired files
+#     files:list[str] = [
+#         f"{dataset_id}/master.csv",
+#         f"{dataset_id}/users.csv",
+#         f"{dataset_id}/categories.csv",
+#         f"{dataset_id}/videos.csv",
+#         f"{dataset_id}/{db_name}"
+#     ]
 
-    # unzip dataset files and get depth
-    fetch_dataset(dataset_id)
-    depth:int = get_dataset_depth(dataset_id)
+#     # unzip dataset files and get depth
+#     fetch_dataset(dataset_id)
+#     depth:int = get_dataset_depth(dataset_id)
 
-    # etl
-    extract(dataset_id, depth, files[0])
-    transform(files)
-    load(files)
+#     # etl
+#     extract(dataset_id, depth, files[0])
+#     transform(files)
+#     load(files)
     
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
