@@ -49,7 +49,7 @@ def extract(dataset_id:str, depth_level:int, master_csv:str) -> None:
         writer.writerows(valid_rows)
 
 # transform the master into 3 files
-def transform(files:list[str]) -> None:
+def transform(files:list) -> None: # Adding [str] after list errors for me
     # create sets to store values from categories/users (deduplicated by nature)
     users:set = set()
     categories:set = set()
@@ -74,7 +74,7 @@ def transform(files:list[str]) -> None:
         writer.writerows(([c] for c in categories))
 
 # general load function
-def load(files:list[str]) -> None:
+def load(files:list) -> None: # Adding [str] after list errors for me
     # create a database, automatically manage closing it
     with sqlite3.connect(files[4]) as con:
         cur:sqlite3.Cursor = con.cursor()

@@ -3,6 +3,7 @@ wget
 
 # spark
 pyspark
+graphframes
 graphframes-py
 typing-extensions
 networkx

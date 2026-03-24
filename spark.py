@@ -17,7 +17,7 @@ def initialize_spark_session() -> SparkSession:
     spark_session = (SparkSession.builder
         .appName("CS431Project")
         .config("spark.jars", "sqlite-jdbc-3.51.2.0.jar")
-        .config("spark.jars.packages", "io.graphframes:graphframes-spark4_2.13:0.10.0")
+        .config("spark.jars.packages", "io.graphframes:graphframes-spark3_2.12:0.10.1")
         .config("spark.sql.extensions", "graphframes.GraphFrames")
         .getOrCreate()
     )
@@ -37,7 +37,7 @@ def load_table_into_spark(spark_session:SparkSession, db_name:str, table_name:st
     return df
 
 # Loading the four tables that are present in the database produced in etl.py
-def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list[DataFrame]:
+def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list: # Adding [DataFrame] after list errors for me
     dfs:list[DataFrame] = []
 
     table_names:list[str] = ["Category", "User", "Video", "Relation"]
@@ -52,6 +52,7 @@ def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> Grap
     nodes = video_table.select(col("id"))
     # Select values from the relation table to form edges between video nodes
     edges = relation_table.select(col("src"), col("dst"))
+    # edges = relation_table.select(col("video_id").alias("src"), col("related_id").alias("dst"))
     
     # Plug into GraphFrame object and return
     graph = GraphFrame(nodes, edges)
@@ -60,17 +61,23 @@ def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> Grap
 
 def degree_reporting(graph: GraphFrame) -> None:
     # In and out degree reporting
+    print(f"In Degrees (first 20 rows):")
     graph.inDegrees.show()
+
+    print(f"Out Degrees (first 20 rows):")
     graph.outDegrees.show()
 
     # Average degree reporting
     num_nodes = graph.vertices.count()
     num_edges = graph.edges.count()
     average_degree = num_edges / num_nodes
-    print(f"Average Degrees per Node: {average_degree}.")
+    print(f"Average Degrees per Node: {average_degree}.", end="\n\n")
 
     # Min and max degree reporting
+    print(f"Minimum Degrees:")
     graph.degrees.orderBy(col("degree").asc()).limit(1).show()
+
+    print(f"Maximum Degrees:")
     graph.degrees.orderBy(col("degree").desc()).limit(1).show()
 
 def graph_and_display(graph: GraphFrame, title: str) -> None:
@@ -94,6 +101,11 @@ def main() -> None:
     # Spark init and data loading
     # make the s_s reusable without needing a getOrCreate call
     spark_session = initialize_spark_session()
+
+    # Debug Lines 
+    # print(f"SPARK VERSION: {spark_session.version}")
+    # print(f"SCALA VERSION: {spark_session._jvm.scala.util.Properties.versionString()}")
+
     spark_tables = load_sqlite_tables(spark_session, database)
     video_relation_graph = network_aggregation(spark_tables[2], spark_tables[3])
     degree_reporting(video_relation_graph)
