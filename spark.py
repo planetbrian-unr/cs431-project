@@ -80,14 +80,23 @@ def degree_reporting(graph: GraphFrame) -> None:
     print(f"Maximum Degrees:")
     graph.degrees.orderBy(col("degree").desc()).limit(1).show()
 
+# This function graphs and displays the network resulting from one video. This is done to show an example of the network aggregation done by Spark.
+# The video can be selected by modifying the list entry value, and the figure can be shown if desired. By default it is saved to a PNG file.  
 def graph_and_display(graph: GraphFrame, title: str) -> None:
     df = graph.edges.select("src", "dst").toPandas()
     nx_graph = nx.from_pandas_edgelist(df, source="src", target="dst")
 
     plt.figure()
     plt.title(title)
-    nx.draw(nx_graph, node_size=200, edge_color='black', node_color='green', with_labels=True, font_size=15)
-    plt.show()
+
+    # Pick a central node, graph around it.
+    centroid = list(nx_graph.nodes)[0]
+    nx_centroid_graph = nx.ego_graph(nx_graph, centroid, radius=3)
+    nx.draw(nx_centroid_graph, node_size=300, edge_color='black', node_color='turquoise', with_labels=True, font_size=5)
+    
+    # Uncomment if desired, I commented as showing through WSL is a struggle.
+    # plt.show()
+    plt.savefig("networkx_graph.png", format="PNG", dpi=300)
 
 # Main
 def main() -> None:
@@ -108,8 +117,8 @@ def main() -> None:
 
     spark_tables = load_sqlite_tables(spark_session, database)
     video_relation_graph = network_aggregation(spark_tables[2], spark_tables[3])
-    degree_reporting(video_relation_graph)
-    # graph_and_display(agg_graph, "Title")
+    # degree_reporting(video_relation_graph)
+    graph_and_display(video_relation_graph, "Example Video Relation Network Graph")
 
 if __name__ == '__main__':
     main()
