@@ -42,13 +42,27 @@ def main() -> None:
         if u_input == "exit":
             return
 
-    # Spark init and data loading
-    # make the s_s reusable without needing a getOrCreate call
-    spark_session = spark.initialize_spark_session()
-    spark_tables = spark.load_sqlite_tables(spark_session, db_name)
-    video_relation_graph = spark.network_aggregation(spark_tables[2], spark_tables[3])
-    spark.degree_reporting(video_relation_graph)
-    # graph_and_display(agg_graph, "Title")
+    u_input = input(f"[1] Degree Distribution" +
+                    f"[2] Categorized Statistics" +
+                    f"[3] Exit")
+    
+    # Exit
+    if u_input == "3":
+        return
+    
+    # Degree Distribution
+    elif u_input == "1":
+        # Spark init and data loading
+        # make the s_s reusable without needing a getOrCreate call
+        spark_session = spark.initialize_spark_session()
+        spark_tables = spark.load_sqlite_tables(spark_session, db_name)
+        video_relation_graph = spark.network_aggregation(spark_tables[2], spark_tables[3])
+        spark.degree_reporting(video_relation_graph)
+        # graph_and_display(agg_graph, "Title")
+
+    # Categorized Statistics 
+    elif u_input == "2":
+        pass
 
     
 

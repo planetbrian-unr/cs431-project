@@ -1,5 +1,4 @@
 # import the sqlite dataset into spark via pyspark and spark sql
-# TODO: graph generation
 # Matthew Gaskell
 
 # built-in
@@ -97,6 +96,33 @@ def graph_and_display(graph: GraphFrame, title: str) -> None:
     # Uncomment if desired, I commented as showing through WSL is a struggle.
     # plt.show()
     plt.savefig("networkx_graph.png", format="PNG", dpi=300)
+
+
+def frequency_statistics():
+    u_input_statistic = input(f"Please select the statistic you would like to partition on:" + 
+                                f"[1] View Count" + 
+                                f"[2] Length" + 
+                                f"[3] Video Rating" +
+                                f"[4] Number of Comments")
+    
+    u_input_sign = input(f"Please select the direction of the partition: < or > ")
+
+    u_input_value = input(f"Please enter the value on which to partition: ")
+
+    column_name = ""
+    match u_input_statistic:
+        case "1":
+            column_name = "views"
+        case "2":
+            column_name = "length"
+        case "3":
+            column_name = "rate"
+
+            if u_input_value > 1:
+                print(f"Rating must be between 0.00 and 0.99.")
+        case "4":
+            column_name = "comments"
+
 
 # Main
 def main() -> None:
