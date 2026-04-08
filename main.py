@@ -8,6 +8,7 @@ import sys
 # local
 import etl
 import spark
+import frequency
 
 def main() -> None:
     if len(sys.argv) != 3:
@@ -62,8 +63,7 @@ def main() -> None:
 
     # Categorized Statistics 
     elif u_input == "2":
-        pass
-
+        frequency.frequency_statistics(db_name)
     
 
 if __name__ == '__main__':

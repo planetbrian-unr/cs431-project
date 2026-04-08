@@ -1,4 +1,4 @@
-# import the sqlite dataset into spark via pyspark and spark sql
+# import the sqlite dataset into spark via pyspark and spark sql and perform network aggregation and degree distribution reporting
 # Matthew Gaskell
 
 # built-in
@@ -46,6 +46,7 @@ def load_sqlite_tables(spark_session:SparkSession, db_name:str) -> list: # Addin
 
     return dfs
 
+# Create the network graph of data based on videos that are related to each other using the video and relation tables. 
 def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> GraphFrame:
     # Take the video id column from the video table
     nodes = video_table.select(col("id"))
@@ -58,6 +59,8 @@ def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> Grap
 
     return graph
 
+# This function reports the degree distribution of the video relations in the form of in degrees, out degrees, average degrees, minimum degrees,
+# and maxmimum degrees. The in and out degrees are truncated to the first 20 rows.
 def degree_reporting(graph: GraphFrame) -> None:
     # In and out degree reporting
     print(f"In Degrees (first 20 rows):")
@@ -97,34 +100,7 @@ def graph_and_display(graph: GraphFrame, title: str) -> None:
     # plt.show()
     plt.savefig("networkx_graph.png", format="PNG", dpi=300)
 
-
-def frequency_statistics():
-    u_input_statistic = input(f"Please select the statistic you would like to partition on:" + 
-                                f"[1] View Count" + 
-                                f"[2] Length" + 
-                                f"[3] Video Rating" +
-                                f"[4] Number of Comments")
-    
-    u_input_sign = input(f"Please select the direction of the partition: < or > ")
-
-    u_input_value = input(f"Please enter the value on which to partition: ")
-
-    column_name = ""
-    match u_input_statistic:
-        case "1":
-            column_name = "views"
-        case "2":
-            column_name = "length"
-        case "3":
-            column_name = "rate"
-
-            if u_input_value > 1:
-                print(f"Rating must be between 0.00 and 0.99.")
-        case "4":
-            column_name = "comments"
-
-
-# Main
+# Main (used for debugging/testing when program not ran from main.py, requires existing database file)
 def main() -> None:
     # Check for passed in cmdline argument
     if len(sys.argv) != 2:
@@ -146,5 +122,6 @@ def main() -> None:
     # degree_reporting(video_relation_graph)
     graph_and_display(video_relation_graph, "Example Video Relation Network Graph")
 
+# Direct File Run
 if __name__ == '__main__':
     main()
