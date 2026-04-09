@@ -6,9 +6,9 @@ import sys
 import shutil
 
 # local
-import etl
-import spark
-import frequency
+import stages.etl as etl
+import stages.spark as spark
+import stages.frequency as frequency
 
 def graph_generator(db_name):
     with spark.initialize_spark_session() as spark_session:
@@ -25,11 +25,9 @@ def main() -> None:
         print("Usage: python main.py <dataset_id> <db_name>")
         return
 
-    # store command-line arguments
+    # store command-line arguments, and create a list of desired files
     dataset_id:str = sys.argv[1]
     db_name:str = sys.argv[2]
-
-    # establish list of desired files
     files:list[str] = [
         f"{dataset_id}/master.csv",
         f"{dataset_id}/users.csv",
@@ -38,11 +36,9 @@ def main() -> None:
         f"{dataset_id}/{db_name}"
     ]
 
-    # unzip dataset files and get depth
+    # unzip dataset files, get depth, and etl
     etl.fetch_dataset(dataset_id)
     depth:int = etl.get_dataset_depth(dataset_id)
-
-    # etl
     etl.extract(dataset_id, depth, files[0])
     etl.transform(files)
     etl.load(files)

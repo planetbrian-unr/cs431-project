@@ -1,7 +1,4 @@
-# etl
 wget
-
-# spark
 pyspark
 graphframes
 graphframes-py
