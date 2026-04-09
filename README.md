@@ -27,7 +27,10 @@ Presuming you do not have Spark installed on your Unix-like system and that you 
     - `java -version`
 
     The previous two commands are for validation, the first should display a path which looks like `/usr/lib/jvm/java-17-openjdk-amd64` and the second should display some information indicating that the version of Java is 17. 
-6. Run `spark.py`
+
+### Run
+6. For the entire program, run `python main.py <dataset_id> <database_name>`. The data will be retrieved and stored in an SQLite database, which you will then be asked to move from the data folder out to the main folder where this program was ran from. After this, the menu of options will appear. You may select [1] for degree distribution statistics reporting, [2] for categorized statistics searching and reporting, or [3] to exit the program. 
+7. If you already have produced a database with our code and want to utilize either of the two aforementioned functionalities more efficiently and by themselves, run either `python spark.py <database_file_name.db>` or `python frequency.py <database_file_name.db>`. 
 
 ## Resources
 - [Spark Documentation](https://spark.apache.org/docs/latest/index.html)
