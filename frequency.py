@@ -1,47 +1,63 @@
 # report categorized statistics on the frequency of videos partitioned on a certain search condition
-# Matthew Gaskell
+# Matthew Gaskell, Brian Wu
 
 # built-in
-import sys
+# import sys
 import sqlite3
 
-# This function takes in user input for search conditions and then queries the SQLite database previously generated from the data
-# to return a count value for the given search. This function loops to represent the search options until a user exits. 
-def frequency_statistics(db_name: str) -> None:
-    database = sqlite3.connect(db_name)
-    cur = database.cursor()
+# menu
+def frequency_statistics(db_name:str) -> None:
+    while True:
+        # create dictionary
+        column_name_dict:dict[str, str] = {
+            "1": "views",
+            "2": "length",
+            "3": "rate",
+            "4": "comments"
+        }
 
-    # Loop through and allow users to continue searching on different conditions until they choose to exit
-    while(1):
-        # Statistic options, can add more later 
-        u_input_statistic = input(f"Please select the statistic you would like to partition on:\n" + 
-                                    f"[1] View Count\n" + 
-                                    f"[2] Length\n" + 
-                                    f"[3] Video Rating\n" +
-                                    f"[4] Number of Comments\n" +
-                                    f"[5] Exit\n")
+        u_input_statistic:str = input(
+            "Please select the statistic you would like to partition on:\n" + 
+            "[1] View Count\n" + 
+            "[2] Length\n" + 
+            "[3] Video Rating\n" +
+            "[4] Number of Comments\n" +
+            "[r] Return to main menu\n"
+        )
         
-        # Exit Condition
-        if u_input_statistic == "5":
+        if u_input_statistic in ("1", "2", "3", "4"):
+            column_name:str = column_name_dict[u_input_statistic]
+            u_input_sign:str = return_comparator()
+            u_input_value:float = return_value(int(u_input_statistic))
+
+            # sql query
+            return_statistic(db_name, column_name, u_input_sign, u_input_value)
+
+        # Exit
+        elif u_input_statistic == "r":
             break
 
-        # Catch invalid option selection
-        try:
-            input_int = int(u_input_statistic)
-            if input_int > 5:
-                print(f"Please enter a valid option.\n")
-                continue
-        except ValueError:
-            print(f"Please enter a valid option.\n")
-            continue
-        
+        else:
+            print("Invalid choice. Please try again.")
+
+# loop until valid comparison sign is inputted
+def return_comparator() -> str:
+    u_input_sign:str = ""
+    while True:
         u_input_sign = input(f"Please select the direction of the partition (< or >): ")
 
         # Input validation (avoid injection)
         if not(u_input_sign == ">" or u_input_sign == "<"): 
             print(f"Direction must be in the form of < or >.\n")
-            continue
+        else:
+            break
 
+    return u_input_sign
+
+# loop until valid int/float is given
+def return_value(u_input_statistic:int) -> float:
+    u_input_value:str = ""
+    while True:
         u_input_value = input(f"Please enter the value on which to partition: ")
 
         # Input validation (avoid injection)
@@ -50,41 +66,37 @@ def frequency_statistics(db_name: str) -> None:
         except ValueError:
             print(f"Please enter a valid number.\n")
             continue
+        # stage 2: checks the validity of the rating value
+        if u_input_statistic == 3 and not (0 <= float(u_input_value) < 1):
+            print(f"Rating must be between 0.00 and 0.99.")
+            continue
+        break
 
-        # Match to column name in the db table
-        # (Switched this from match case because my WSL is on Python 3.8 for some reason)
-        column_name = ""
-        if u_input_statistic == "1":
-            column_name = "views"
+    # an int is a float. removes leading decimal
+    return float(u_input_value) if u_input_statistic == 3 else int(u_input_value)
 
-        elif u_input_statistic == "2":
-            column_name = "length"
-
-        elif u_input_statistic == "3":
-            column_name = "rate"
-
-            if u_input_value > 1 or u_input_value < 0:
-                print(f"Rating must be between 0.00 and 0.99.")
-
-        elif u_input_statistic == "4":
-            column_name = "comments"
-
-        # Query, get value, and print to user
-        cur.execute("SELECT COUNT(*) FROM Video WHERE " + column_name + " " + u_input_sign + " " + u_input_value)
-        count_value = cur.fetchone()[0]
-        print(f"The number of videos with {column_name} {u_input_sign} {u_input_value} is {count_value}.\n")
+# Takes in user input for search conditions and then queries the SQLite database
+def return_statistic(db_name:str, col_name:str, comparator:str, value:float) -> None:
+    # automatic connection management
+    with sqlite3.connect(db_name) as con:
+        cur:sqlite3.Cursor = con.cursor()
+        cur.execute(f"""
+                    SELECT COUNT(*)
+                    FROM Video
+                    WHERE {col_name} {comparator} {value};
+                    """)
+        print(f"The number of videos with {col_name} {comparator} {value} is {cur.fetchone()[0]}.\n")
 
 # Main (used for debugging/testing when program not ran from main.py, requires existing database file)
-def main() -> None:
-    # Check for passed in cmdline argument
-    if len(sys.argv) != 2:
-        print("Usage: python frequency.py <database_file_name.db>")
+# def main() -> None:
+#     # Check for passed in cmdline argument
+#     if len(sys.argv) != 2:
+#         print("Usage: python frequency.py <database_file_name.db>")
 
-    # Passed in arg = sqlite database file
-    database:str = sys.argv[1]
+#     # Passed in arg = sqlite database file
+#     database:str = sys.argv[1]
 
-    frequency_statistics(database)
+#     frequency_statistics(database)
 
-# Direct File Run
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

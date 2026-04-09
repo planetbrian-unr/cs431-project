@@ -2,15 +2,25 @@
 # Brian Wu, Matthew Gaskell
 
 # built-in
-import os
 import sys
+import shutil
 
 # local
 import etl
 import spark
 import frequency
 
+def graph_generator(db_name):
+    with spark.initialize_spark_session() as spark_session:
+        # Spark init and data loading
+        # make the s_s reusable without needing a getOrCreate call
+        spark_tables = spark.load_sqlite_tables(spark_session, db_name)
+        video_relation_graph = spark.network_aggregation(spark_tables[2], spark_tables[3])
+
+        return video_relation_graph
+
 def main() -> None:
+    # error-catching, must specify arguments
     if len(sys.argv) != 3:
         print("Usage: python main.py <dataset_id> <db_name>")
         return
@@ -37,34 +47,39 @@ def main() -> None:
     etl.transform(files)
     etl.load(files)
 
-    while not os.path.isfile(db_name):
-        u_input = input(f"Please move {db_name} from the {dataset_id} directory to where main.py is. " +
-                        f"Please click enter when done, or type exit to exit the script\n")
-        if u_input == "exit":
-            return
+    # move database to main.py's directory and start program
+    shutil.copy(files[4], db_name)
 
-    u_input = input(f"[1] Degree Distribution\n" +
-                    f"[2] Categorized Statistics\n" +
-                    f"[3] Exit\n")
-    
-    # Exit
-    if u_input == "3":
-        return
-    
-    # Degree Distribution
-    elif u_input == "1":
-        # Spark init and data loading
-        # make the s_s reusable without needing a getOrCreate call
-        spark_session = spark.initialize_spark_session()
-        spark_tables = spark.load_sqlite_tables(spark_session, db_name)
-        video_relation_graph = spark.network_aggregation(spark_tables[2], spark_tables[3])
-        spark.degree_reporting(video_relation_graph)
-        # graph_and_display(agg_graph, "Title")
+    # compute a graph to use
+    video_relation_graph = graph_generator(db_name)
 
-    # Categorized Statistics 
-    elif u_input == "2":
-        frequency.frequency_statistics(db_name)
+    # loop menu until exited
+    while True:
+        u_input:str = input(
+            "What would you like to do?\n" +
+            "[1] Degree Distribution\n" +
+            "[2] Generate a simple Network graph\n" +
+            "[3] Categorized Statistics\n" +
+            "[e] Exit\n"
+        )
+
+        if u_input == "1":
+            spark.degree_reporting(video_relation_graph)
     
+        elif u_input == "2":
+            spark.graph_and_display(video_relation_graph, "Simple YouTube network graph")
+
+        elif u_input == "3":
+            frequency.frequency_statistics(db_name)
+
+        # Exit
+        if u_input == "e":
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+    
+    return
 
 if __name__ == '__main__':
     main()

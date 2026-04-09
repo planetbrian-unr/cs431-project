@@ -182,6 +182,7 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
                             VALUES (?, ?);
                             """, relation)
 
+# main, used for direct execution for testing. not important
 # def main() -> None:
 #     # if command-line arguments not exactly 3, gracefully fail
 #     if len(sys.argv) != 3:
