@@ -43,9 +43,9 @@ def main() -> None:
         if u_input == "exit":
             return
 
-    u_input = input(f"[1] Degree Distribution" +
-                    f"[2] Categorized Statistics" +
-                    f"[3] Exit")
+    u_input = input(f"[1] Degree Distribution\n" +
+                    f"[2] Categorized Statistics\n" +
+                    f"[3] Exit\n")
     
     # Exit
     if u_input == "3":
