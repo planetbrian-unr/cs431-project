@@ -2,7 +2,6 @@
 # Matthew Gaskell, Brian Wu
 
 # built-in
-# import sys
 import sqlite3
 
 # menu
@@ -28,7 +27,7 @@ def frequency_statistics(db_name:str) -> None:
         if u_input_statistic in ("1", "2", "3", "4"):
             column_name:str = column_name_dict[u_input_statistic]
             u_input_sign:str = return_comparator()
-            u_input_value:float = return_value(int(u_input_statistic))
+            u_input_value:float = return_value(u_input_statistic)
 
             # sql query
             return_statistic(db_name, column_name, u_input_sign, u_input_value)
@@ -44,36 +43,36 @@ def frequency_statistics(db_name:str) -> None:
 def return_comparator() -> str:
     u_input_sign:str = ""
     while True:
-        u_input_sign = input(f"Please select the direction of the partition (< or >): ")
+        u_input_sign = input("Please select the direction of the partition (< or >): ")
 
         # Input validation (avoid injection)
-        if not(u_input_sign == ">" or u_input_sign == "<"): 
-            print(f"Direction must be in the form of < or >.\n")
+        if u_input_sign not in (">", "<"):
+            print("Direction must be in the form of < or >.\n")
         else:
             break
 
     return u_input_sign
 
 # loop until valid int/float is given
-def return_value(u_input_statistic:int) -> float:
+def return_value(u_input_statistic:str) -> float:
     u_input_value:str = ""
     while True:
-        u_input_value = input(f"Please enter the value on which to partition: ")
+        u_input_value = input("Please enter the value on which to partition: ")
 
         # Input validation (avoid injection)
         try:
             float(u_input_value)
         except ValueError:
-            print(f"Please enter a valid number.\n")
+            print("Please enter a valid number.\n")
             continue
         # stage 2: checks the validity of the rating value
-        if u_input_statistic == 3 and not (0 <= float(u_input_value) < 1):
-            print(f"Rating must be between 0.00 and 0.99.")
+        if u_input_statistic == "3" and not (0 <= float(u_input_value) < 1):
+            print("Rating must be between 0.00 and 0.99.")
             continue
         break
 
     # an int is a float. removes leading decimal
-    return float(u_input_value) if u_input_statistic == 3 else int(u_input_value)
+    return float(u_input_value) if u_input_statistic == "3" else int(u_input_value)
 
 # Takes in user input for search conditions and then queries the SQLite database
 def return_statistic(db_name:str, col_name:str, comparator:str, value:float) -> None:
@@ -89,6 +88,8 @@ def return_statistic(db_name:str, col_name:str, comparator:str, value:float) -> 
 
 # Main (used for debugging/testing when program not ran from main.py, requires existing database file)
 # def main() -> None:
+#     import sys
+
 #     # Check for passed in cmdline argument
 #     if len(sys.argv) != 2:
 #         print("Usage: python frequency.py <database_file_name.db>")

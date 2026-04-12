@@ -1,7 +1,7 @@
-wget
-pyspark
-graphframes
-graphframes-py
-typing-extensions
-networkx
-matplotlib
+wget    # for fetching dataset/sqlite jdbc driver
+pyspark # spark
+graphframes-py  # for creating graphs
+typing-extensions   # why not
+networkx    # graph gen 
+matplotlib  # graph gen
+pandas  # graph gen

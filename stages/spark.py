@@ -2,7 +2,7 @@
 # Matthew Gaskell
 
 # built-in
-# import sys
+import os
 
 # pip imports
 import wget
@@ -16,13 +16,14 @@ import matplotlib.pyplot as plt
 # SparkSession initialization
 def initialize_spark_session() -> SparkSession:
     # prerequisite download
-    wget.download("https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.51.2.0/sqlite-jdbc-3.51.2.0.jar", bar=None)
+    if not os.path.isfile("sqlite-jdbc-3.51.2.0.jar"):
+        wget.download("https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.51.2.0/sqlite-jdbc-3.51.2.0.jar", bar=None)
 
     spark_session = (SparkSession.builder
         .appName("CS431Project")
         .config("spark.jars", "sqlite-jdbc-3.51.2.0.jar")
-        .config("spark.jars.packages", "io.graphframes:graphframes-spark3_2.12:0.10.1")
-        # .config("spark.jars.packages", "io.graphframes:graphframes-spark4_2.13:0.10.0") # github codespaces' pyspark is version 4. i need this for myself
+        .config("spark.jars.packages", "io.graphframes:graphframes-spark3_2.12:0.11.0")
+        #.config("spark.jars.packages", "io.graphframes:graphframes-spark4_2.13:0.11.0") # github codespaces' pyspark is version 4. i need this for myself
         .config("spark.sql.extensions", "graphframes.GraphFrames")
         .getOrCreate()
     )
@@ -63,15 +64,34 @@ def network_aggregation(video_table:DataFrame, relation_table:DataFrame) -> Grap
 
     return graph
 
+# combine the above functions together
+def graph_generator(spark_session:SparkSession, db_name:str) -> GraphFrame:
+    spark_tables = load_sqlite_tables(spark_session, db_name)
+    video_relation_graph = network_aggregation(spark_tables[2], spark_tables[3])
+
+    return video_relation_graph
+
 # This function reports the degree distribution of the video relations in the form of in degrees, out degrees, average degrees, minimum degrees,
 # and maxmimum degrees. The in and out degrees are truncated to the first 20 rows.
 def degree_reporting(graph:GraphFrame) -> None:
     # In and out degree reporting
-    print(f"In Degrees (first 20 rows):")
-    graph.inDegrees.show()
+    u_input_value:int = 0
+    while True:
+        u_input:str = input("Please enter the number of rows to generate: ")
 
-    print(f"Out Degrees (first 20 rows):")
-    graph.outDegrees.show()
+        # Input validation (avoid injection)
+        try:
+            u_input_value = int(u_input)
+            break
+        except ValueError:
+            print("Please enter a valid number.\n")
+            continue
+
+    print(f"In Degrees (first {u_input_value} rows):")
+    graph.inDegrees.show(u_input_value)
+
+    print(f"Out Degrees (first {u_input_value} rows):")
+    graph.outDegrees.show(u_input_value)
 
     # Average degree reporting
     num_nodes:int = graph.vertices.count()
@@ -88,7 +108,7 @@ def degree_reporting(graph:GraphFrame) -> None:
 
 # This function graphs and displays the network resulting from one video. This is done to show an example of the network aggregation done by Spark.
 # The video can be selected by modifying the list entry value, and the figure can be shown if desired. By default it is saved to a PNG file.  
-def graph_and_display(graph: GraphFrame, title: str) -> None:
+def graph_and_display(graph:GraphFrame, title:str) -> None:
     df = graph.edges.select("src", "dst").toPandas()
     nx_graph = nx.from_pandas_edgelist(df, source="src", target="dst")
 
@@ -106,6 +126,8 @@ def graph_and_display(graph: GraphFrame, title: str) -> None:
 
 # Main (used for debugging/testing when program not ran from main.py, requires existing database file)
 # def main() -> None:
+#     import sys
+
 #     # Check for passed in cmdline argument
 #     if len(sys.argv) != 2:
 #         print("Usage: python spark.py <database_file_name.db>")
@@ -115,16 +137,15 @@ def graph_and_display(graph: GraphFrame, title: str) -> None:
 
 #     # Spark init and data loading
 #     # make the s_s reusable without needing a getOrCreate call
-#     spark_session = initialize_spark_session()
+#     with initialize_spark_session() as spark_session:
+#         # Debug Lines 
+#         # print(f"SPARK VERSION: {spark_session.version}")
+#         # print(f"SCALA VERSION: {spark_session._jvm.scala.util.Properties.versionString()}")
 
-#     # Debug Lines 
-#     # print(f"SPARK VERSION: {spark_session.version}")
-#     # print(f"SCALA VERSION: {spark_session._jvm.scala.util.Properties.versionString()}")
+#         video_relation_graph = graph_generator(spark_session, database)
 
-#     spark_tables = load_sqlite_tables(spark_session, database)
-#     video_relation_graph = network_aggregation(spark_tables[2], spark_tables[3])
-#     # degree_reporting(video_relation_graph)
-#     graph_and_display(video_relation_graph, "Example Video Relation Network Graph")
+#         degree_reporting(video_relation_graph)
+#         graph_and_display(video_relation_graph, "Example Video Relation Network Graph")
 
 # if __name__ == '__main__':
 #     main()

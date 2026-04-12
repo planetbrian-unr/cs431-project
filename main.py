@@ -10,15 +10,6 @@ import stages.etl as etl
 import stages.spark as spark
 import stages.frequency as frequency
 
-def graph_generator(db_name):
-    with spark.initialize_spark_session() as spark_session:
-        # Spark init and data loading
-        # make the s_s reusable without needing a getOrCreate call
-        spark_tables = spark.load_sqlite_tables(spark_session, db_name)
-        video_relation_graph = spark.network_aggregation(spark_tables[2], spark_tables[3])
-
-        return video_relation_graph
-
 def main() -> None:
     # error-catching, must specify arguments
     if len(sys.argv) != 3:
@@ -43,11 +34,10 @@ def main() -> None:
     etl.transform(files)
     etl.load(files)
 
-    # move database to main.py's directory and start program
+    # move database to main.py's directory and start graph creation with spark
     shutil.copy(files[4], db_name)
-
-    # compute a graph to use
-    video_relation_graph = graph_generator(db_name)
+    spark_session = spark.initialize_spark_session()
+    video_relation_graph = spark.graph_generator(spark_session, db_name)
 
     # loop menu until exited
     while True:

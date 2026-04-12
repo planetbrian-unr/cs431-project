@@ -3,10 +3,9 @@
 
 # built-in
 import csv
-import sqlite3
 import os
-# import sys
-import zipfile
+import shutil
+import sqlite3
 
 # pip
 import wget
@@ -17,7 +16,7 @@ def fetch_dataset(dataset_id:str) -> None:
         wget.download(f"https://netsg.cs.sfu.ca/youtubedata/{dataset_id}.zip", bar=None)
     
     if not os.path.isdir(f"{dataset_id}"):
-        zipfile.ZipFile(f"{dataset_id}.zip", "r").extractall()
+        shutil.unpack_archive(f"{dataset_id}.zip")
 
 # get depth. used ai
 def get_dataset_depth(dataset_id:str) -> int:
@@ -34,8 +33,7 @@ def extract(dataset_id:str, depth_level:int, master_csv:str) -> None:
     # open all i_txt from 0 to d_l exclusive (d_l-1) and store their rows in valid_rows
     valid_rows = []
     for i in range(0, depth_level):
-        i_txt:str = f'{dataset_id}/{i}.txt'
-        with open(i_txt, 'r') as infile:
+        with open(f'{dataset_id}/{i}.txt', 'r') as infile:
             reader = csv.reader(infile, delimiter='\t')
             for row in reader:
                 # sanity check: add padding if necessary to form a full video tuple
@@ -100,7 +98,7 @@ def load_basic_table(cur:sqlite3.Cursor, csv_path:str, table_name:str, column:st
     with open(csv_path) as file:
         reader = csv.reader(file)
         cur.executemany(f"""
-                        INSERT INTO {table_name} ({column})
+                        INSERT OR IGNORE INTO {table_name} ({column})
                         VALUES (?);
                         """, reader)
 
@@ -153,7 +151,7 @@ def load_video_table(cur:sqlite3.Cursor, videos_csv:str) -> None:
             ))
 
     cur.executemany("""
-                    INSERT INTO Video
+                    INSERT OR IGNORE INTO Video
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """, rows_to_insert)
 
@@ -178,12 +176,14 @@ def load_relations_table(cur:sqlite3.Cursor, master_csv:str) -> None:
             # create pairs. up to 20 recommended videos, but there may be 0. 0-20.
             relation = ((row[0], cell) for cell in row[9:30])
             cur.executemany("""
-                            INSERT INTO Relation
+                            INSERT OR IGNORE INTO Relation
                             VALUES (?, ?);
                             """, relation)
 
 # main, used for direct execution for testing. not important
 # def main() -> None:
+#     import sys
+
 #     # if command-line arguments not exactly 3, gracefully fail
 #     if len(sys.argv) != 3:
 #         print("Usage: python etl.py <dataset_id> <db_name>")

@@ -237,3 +237,6 @@ replay_pid*
 
 # databases
 *.db
+
+# dataset
+0302/
