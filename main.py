@@ -59,7 +59,7 @@ def main() -> None:
             frequency.frequency_statistics(db_name)
 
         # Exit
-        if u_input == "e":
+        elif u_input == "e":
             break
 
         else:

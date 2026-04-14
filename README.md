@@ -22,7 +22,7 @@ The dataset will be retrieved and transformed into an SQLite database. After thi
 
 ## Extras
 If you would rather run each stage independently, uncomment the `import sys` line and `main()` in etl.py, frequency.py, and spark.py.
-If you already have produced a database with our code and want to utilize either of the two aforementioned functionalities more efficiently and by themselves, run either `python spark.py <database_file_name.db>` or `python frequency.py <database_file_name.db>`. 
+If you already have produced a database with our code and want to utilize either of the two aforementioned functionalities more efficiently and by themselves, change into the stages directory and run either `python spark.py <database_file_name.db>` or `python frequency.py <database_file_name.db>`. 
 
 ## Resources
 - [Spark Documentation](https://spark.apache.org/docs/latest/index.html)
